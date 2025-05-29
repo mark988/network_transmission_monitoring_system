@@ -40,11 +40,8 @@ export default function Login() {
         throw new Error("验证码错误");
       }
       
-      const result = await apiRequest({
-        url: "/api/auth/login",
-        method: "POST",
-        body: data,
-      });
+      const response = await apiRequest("POST", "/api/auth/login", data);
+      const result = await response.json();
       return result;
     },
     onSuccess: () => {

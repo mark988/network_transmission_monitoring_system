@@ -2,9 +2,22 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { setupAuth, sessionAuth } from "./replitAuth";
+import { setupAuth } from "./replitAuth";
 import { analyzeProblem, chatWithAI, generateNetworkInsights } from "./openai";
 import { z } from "zod";
+
+// Extend session type
+declare module 'express-session' {
+  interface SessionData {
+    user: {
+      id: string;
+      username: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+    };
+  }
+}
 
 const createNodeSchema = z.object({
   name: z.string().min(1),
@@ -56,7 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Store user in session
-      req.session.user = user;
+      (req.session as any).user = user;
       
       res.json({ message: "登录成功", user: { id: user.id, username: user.username, email: user.email } });
     } catch (error) {
@@ -67,11 +80,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/auth/user', async (req: any, res) => {
     try {
-      if (!req.session.user) {
+      if (!(req.session as any).user) {
         return res.status(401).json({ message: "Unauthorized" });
       }
       
-      const sessionUser = req.session.user;
+      const sessionUser = (req.session as any).user;
       let user = await storage.getUser(sessionUser.id);
       
       if (!user) {
@@ -99,7 +112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Simple auth middleware for session-based auth
   const sessionAuth = (req: any, res: any, next: any) => {
-    if (!req.session.user) {
+    if (!(req.session as any).user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     next();
