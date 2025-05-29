@@ -1,7 +1,6 @@
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Bell, Settings } from "lucide-react";
+import { Bell, Settings } from "lucide-react";
 
 interface HeaderProps {
   title: string;
@@ -23,15 +22,6 @@ export function Header({ title }: HeaderProps) {
         </div>
         
         <div className="flex items-center space-x-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <Input 
-              type="text" 
-              placeholder="搜索节点、IP地址..." 
-              className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
-            />
-          </div>
-          
           <Button 
             variant="ghost" 
             size="sm"
