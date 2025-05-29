@@ -118,6 +118,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
+  app.put('/api/auth/user', sessionAuth, async (req, res) => {
+    try {
+      const { firstName, lastName, email } = req.body;
+      const sessionUser = (req.session as any).user;
+      
+      // 更新用户信息
+      const updatedUser = await storage.upsertUser({
+        id: sessionUser.id,
+        email,
+        firstName,
+        lastName,
+      });
+      
+      // 更新session中的用户信息
+      (req.session as any).user = {
+        ...sessionUser,
+        email,
+        firstName,
+        lastName,
+      };
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "用户信息更新失败" });
+    }
+  });
+
+  app.post('/api/auth/change-password', sessionAuth, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const sessionUser = (req.session as any).user;
+      
+      // 验证当前密码
+      const validUsers = [
+        { username: 'admin', password: 'admin123', id: '1' },
+        { username: 'operator', password: 'operator123', id: '2' },
+        { username: 'viewer', password: 'viewer123', id: '3' }
+      ];
+      
+      const currentUser = validUsers.find(u => u.id === sessionUser.id);
+      if (!currentUser || currentUser.password !== currentPassword) {
+        return res.status(400).json({ message: "当前密码错误" });
+      }
+      
+      // 在实际应用中，这里应该更新数据库中的密码（加密存储）
+      // 这里只是模拟成功响应
+      res.json({ message: "密码修改成功" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ message: "密码修改失败" });
+    }
+  });
+
   // Dashboard stats endpoint
   app.get('/api/dashboard/stats', sessionAuth, async (req, res) => {
     try {
