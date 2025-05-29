@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { NodeList } from "@/components/nodes/node-list";
+import { NodeMap } from "@/components/nodes/node-map";
 import { NodeDialog } from "@/components/nodes/node-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -135,14 +136,13 @@ export default function Nodes() {
               </TabsContent>
               
               <TabsContent value="map" className="mt-6">
-                <div className="h-96 bg-slate-800/50 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <div className="w-8 h-8 bg-slate-600 rounded-full" />
-                    </div>
-                    <p className="text-slate-400">地图视图功能开发中...</p>
-                  </div>
-                </div>
+                <NodeMap 
+                  searchTerm={searchTerm}
+                  onNodeEdit={(node) => {
+                    setSelectedNode(node);
+                    setIsDialogOpen(true);
+                  }}
+                />
               </TabsContent>
             </Tabs>
           </CardContent>

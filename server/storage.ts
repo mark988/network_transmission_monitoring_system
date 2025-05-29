@@ -146,7 +146,83 @@ export class DatabaseStorage implements IStorage {
 
   // Network node operations
   async getNetworkNodes(): Promise<NetworkNode[]> {
-    return await db.select().from(networkNodes).orderBy(desc(networkNodes.createdAt));
+    const nodes = await db.select().from(networkNodes).orderBy(desc(networkNodes.createdAt));
+    
+    // If no nodes exist, create some sample network infrastructure data
+    if (nodes.length === 0) {
+      const sampleNodes = [
+        {
+          name: "Core-Router-01",
+          ipAddress: "192.168.1.1",
+          type: "router" as const,
+          status: "online" as const,
+          location: "数据中心A栋",
+          description: "核心路由器，负责主要流量转发"
+        },
+        {
+          name: "Edge-Switch-02",
+          ipAddress: "192.168.1.10",
+          type: "switch" as const,
+          status: "online" as const,
+          location: "数据中心B栋",
+          description: "边缘交换机，连接办公网络"
+        },
+        {
+          name: "Web-Server-01",
+          ipAddress: "192.168.1.100",
+          type: "server" as const,
+          status: "online" as const,
+          location: "服务器机房1",
+          description: "Web应用服务器"
+        },
+        {
+          name: "DB-Server-Primary",
+          ipAddress: "192.168.1.200",
+          type: "server" as const,
+          status: "warning" as const,
+          location: "服务器机房2",
+          description: "主数据库服务器"
+        },
+        {
+          name: "Backup-Router-01",
+          ipAddress: "192.168.1.5",
+          type: "router" as const,
+          status: "offline" as const,
+          location: "数据中心A栋",
+          description: "备用路由器，故障转移设备"
+        },
+        {
+          name: "Access-Switch-03",
+          ipAddress: "192.168.1.15",
+          type: "switch" as const,
+          status: "online" as const,
+          location: "办公楼3层",
+          description: "接入层交换机"
+        },
+        {
+          name: "Load-Balancer-01",
+          ipAddress: "192.168.1.50",
+          type: "server" as const,
+          status: "online" as const,
+          location: "DMZ区域",
+          description: "负载均衡器"
+        },
+        {
+          name: "Firewall-Gateway",
+          ipAddress: "192.168.1.254",
+          type: "router" as const,
+          status: "online" as const,
+          location: "网络边界",
+          description: "防火墙网关设备"
+        }
+      ];
+
+      await db.insert(networkNodes).values(sampleNodes);
+      
+      return await db.select().from(networkNodes).orderBy(desc(networkNodes.createdAt));
+    }
+    
+    return nodes;
   }
 
   async getNetworkNode(id: string): Promise<NetworkNode | undefined> {
