@@ -148,47 +148,41 @@ export function TopologyCanvas({
     ctx.stroke();
 
     // Draw animated data flow if enabled and playing
-    if (showDataFlow && isPlaying && connection.status === "active") {
+    if (showDataFlow && isPlaying) {
       drawDataFlow(ctx, sourceNode, targetNode);
     }
   };
 
   const drawDataFlow = (ctx: CanvasRenderingContext2D, source: Node, target: Node) => {
-    const distance = Math.sqrt(Math.pow(target.x - source.x, 2) + Math.pow(target.y - source.y, 2));
-    const speed = animationSpeed * 0.5;
-    const dotSpacing = 30;
-    const numDots = Math.max(3, Math.floor(distance / dotSpacing));
+    // Use current time for animation instead of animationFrame
+    const time = Date.now() * 0.002;
+    const progress = (time % 2) / 2; // 0 to 1 over 2 seconds
     
-    for (let i = 0; i < numDots; i++) {
-      const offset = (animationFrame * speed + i * dotSpacing) % distance;
-      const progress = offset / distance;
-      
-      const x = source.x + (target.x - source.x) * progress;
-      const y = source.y + (target.y - source.y) * progress;
-      
-      // Animated dot
-      ctx.fillStyle = "#10b981";
-      ctx.shadowColor = "#10b981";
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.arc(x, y, 4, 0, 2 * Math.PI);
-      ctx.fill();
-      
-      // Arrow direction
-      const angle = Math.atan2(target.y - source.y, target.x - source.x);
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(angle);
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = "#059669";
-      ctx.beginPath();
-      ctx.moveTo(8, 0);
-      ctx.lineTo(-3, -4);
-      ctx.lineTo(-3, 4);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-    }
+    const x = source.x + (target.x - source.x) * progress;
+    const y = source.y + (target.y - source.y) * progress;
+    
+    // Animated dot
+    ctx.fillStyle = "#10b981";
+    ctx.shadowColor = "#10b981";
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    
+    // Arrow direction
+    const angle = Math.atan2(target.y - source.y, target.x - source.x);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = "#059669";
+    ctx.beginPath();
+    ctx.moveTo(10, 0);
+    ctx.lineTo(-4, -4);
+    ctx.lineTo(-4, 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
   };
 
   const drawCanvas = () => {
