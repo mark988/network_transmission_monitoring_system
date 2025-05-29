@@ -309,14 +309,14 @@ export function TopologyCanvas({
     let animationId: number;
     
     const animate = () => {
+      drawCanvas();
       if (isPlaying) {
         setAnimationFrame(prev => prev + 1);
       }
-      drawCanvas();
       animationId = requestAnimationFrame(animate);
     };
     
-    animationId = requestAnimationFrame(animate);
+    animate();
     
     return () => {
       if (animationId) {
@@ -324,11 +324,6 @@ export function TopologyCanvas({
       }
     };
   }, [isPlaying, zoomLevel, layout, animationSpeed, showDataFlow, activeFilters]);
-
-  // Initial canvas setup
-  useEffect(() => {
-    drawCanvas();
-  }, []);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
