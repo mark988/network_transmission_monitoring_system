@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Header } from "@/components/layout/header";
 import { TopologyCanvas } from "@/components/topology/topology-canvas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Play, 
   Pause, 
@@ -18,9 +19,54 @@ import {
   Camera
 } from "lucide-react";
 
+type LayoutType = "force" | "hierarchical" | "circular" | "grid";
+
 export default function Topology() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [layout, setLayout] = useState<LayoutType>("force");
+  const [animationSpeed, setAnimationSpeed] = useState(5);
+  const [showDataFlow, setShowDataFlow] = useState(true);
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // 处理缩放功能
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev * 1.2, 4));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev / 1.2, 0.25));
+  };
+
+  // 处理刷新功能
+  const handleRefresh = () => {
+    setZoomLevel(1);
+    setSelectedNode(null);
+    // 触发画布重绘
+    window.location.reload();
+  };
+
+  // 处理下载功能
+  const handleDownload = () => {
+    if (canvasRef.current) {
+      const canvas = canvasRef.current;
+      const link = document.createElement('a');
+      link.download = `network-topology-${new Date().toISOString().slice(0, 10)}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    }
+  };
+
+  // 处理过滤器切换
+  const toggleFilter = (filter: string) => {
+    setActiveFilters(prev => 
+      prev.includes(filter) 
+        ? prev.filter(f => f !== filter)
+        : [...prev, filter]
+    );
+  };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -47,6 +93,8 @@ export default function Topology() {
                     variant="outline"
                     size="sm"
                     className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                    onClick={handleRefresh}
+                    title="刷新"
                   >
                     <RotateCcw className="w-4 h-4" />
                   </Button>
@@ -55,6 +103,8 @@ export default function Topology() {
                     variant="outline"
                     size="sm"
                     className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                    onClick={handleZoomIn}
+                    title="放大"
                   >
                     <ZoomIn className="w-4 h-4" />
                   </Button>
@@ -62,6 +112,8 @@ export default function Topology() {
                     variant="outline"
                     size="sm"
                     className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                    onClick={handleZoomOut}
+                    title="缩小"
                   >
                     <ZoomOut className="w-4 h-4" />
                   </Button>
@@ -69,6 +121,8 @@ export default function Topology() {
                     variant="outline"
                     size="sm"
                     className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                    onClick={() => setZoomLevel(1)}
+                    title="适应屏幕"
                   >
                     <Maximize className="w-4 h-4" />
                   </Button>
@@ -77,6 +131,7 @@ export default function Topology() {
                     variant="outline"
                     size="sm"
                     className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                    title="截图"
                   >
                     <Camera className="w-4 h-4" />
                   </Button>
@@ -84,6 +139,8 @@ export default function Topology() {
                     variant="outline"
                     size="sm"
                     className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                    onClick={handleDownload}
+                    title="下载"
                   >
                     <Download className="w-4 h-4" />
                   </Button>
@@ -143,7 +200,12 @@ export default function Topology() {
                       <Badge 
                         key={type}
                         variant="outline" 
-                        className="bg-blue-500/20 text-blue-400 border-blue-500/30 cursor-pointer hover:bg-blue-500/30"
+                        className={`cursor-pointer transition-colors ${
+                          activeFilters.includes(type)
+                            ? "bg-blue-500 text-white border-blue-500"
+                            : "bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30"
+                        }`}
+                        onClick={() => toggleFilter(type)}
                       >
                         {type}
                       </Badge>
@@ -157,7 +219,12 @@ export default function Topology() {
                       <Badge 
                         key={status}
                         variant="outline" 
-                        className="bg-slate-600/50 text-slate-300 border-slate-500 cursor-pointer hover:bg-slate-500/50"
+                        className={`cursor-pointer transition-colors ${
+                          activeFilters.includes(status)
+                            ? "bg-green-500 text-white border-green-500"
+                            : "bg-slate-600/50 text-slate-300 border-slate-500 hover:bg-slate-500/50"
+                        }`}
+                        onClick={() => toggleFilter(status)}
                       >
                         {status}
                       </Badge>
@@ -219,12 +286,17 @@ export default function Topology() {
               <CardContent className="space-y-3">
                 <div className="space-y-2">
                   <label className="text-slate-300 text-sm">布局算法</label>
-                  <select className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm">
-                    <option>力导向布局</option>
-                    <option>层次布局</option>
-                    <option>圆形布局</option>
-                    <option>网格布局</option>
-                  </select>
+                  <Select value={layout} onValueChange={(value: LayoutType) => setLayout(value)}>
+                    <SelectTrigger className="w-full bg-slate-700 border-slate-600 text-white">
+                      <SelectValue placeholder="选择布局算法" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-700 border-slate-600">
+                      <SelectItem value="force">力导向布局</SelectItem>
+                      <SelectItem value="hierarchical">层次布局</SelectItem>
+                      <SelectItem value="circular">圆形布局</SelectItem>
+                      <SelectItem value="grid">网格布局</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-slate-300 text-sm">动画速度</label>
@@ -232,14 +304,21 @@ export default function Topology() {
                     type="range" 
                     min="1" 
                     max="10" 
-                    defaultValue="5"
+                    value={animationSpeed}
+                    onChange={(e) => setAnimationSpeed(Number(e.target.value))}
                     className="w-full accent-blue-500"
                   />
+                  <div className="text-right text-slate-400 text-xs">{animationSpeed}x</div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-slate-300 text-sm">数据流显示</label>
                   <div className="flex items-center space-x-2">
-                    <input type="checkbox" defaultChecked className="accent-blue-500" />
+                    <input 
+                      type="checkbox" 
+                      checked={showDataFlow}
+                      onChange={(e) => setShowDataFlow(e.target.checked)}
+                      className="accent-blue-500" 
+                    />
                     <span className="text-slate-300 text-sm">显示数据流动画</span>
                   </div>
                 </div>

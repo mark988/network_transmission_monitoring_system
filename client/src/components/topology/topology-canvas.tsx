@@ -19,13 +19,28 @@ interface Connection {
 
 interface TopologyCanvasProps {
   onNodeSelect?: (nodeId: string | null) => void;
+  isPlaying?: boolean;
+  zoomLevel?: number;
+  layout?: string;
+  animationSpeed?: number;
+  showDataFlow?: boolean;
+  activeFilters?: string[];
 }
 
-export function TopologyCanvas({ onNodeSelect }: TopologyCanvasProps) {
+export function TopologyCanvas({ 
+  onNodeSelect, 
+  isPlaying = true, 
+  zoomLevel = 1, 
+  layout = "force",
+  animationSpeed = 5,
+  showDataFlow = true,
+  activeFilters = []
+}: TopologyCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [animationFrame, setAnimationFrame] = useState(0);
 
   const nodes: Node[] = [
     { id: "core-1", name: "Core-Router-01", type: "router", x: 400, y: 100, status: "online" },
