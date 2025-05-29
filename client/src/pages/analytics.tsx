@@ -6,6 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { 
   LineChart, 
   Line, 
@@ -38,6 +41,11 @@ export default function Analytics() {
   const [timeRange, setTimeRange] = useState("24h");
   const [selectedMetric, setSelectedMetric] = useState("bandwidth");
   const [isExporting, setIsExporting] = useState(false);
+  const [isCustomTimeOpen, setIsCustomTimeOpen] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+  const [customStartTime, setCustomStartTime] = useState("");
+  const [customEndTime, setCustomEndTime] = useState("");
   const { toast } = useToast();
 
   // Handle time range change
@@ -60,10 +68,35 @@ export default function Analytics() {
 
   // Handle custom time picker
   const handleCustomTime = () => {
+    setIsCustomTimeOpen(true);
+  };
+
+  // Handle custom time range application
+  const handleApplyCustomTime = () => {
+    if (!customStartDate || !customEndDate) {
+      toast({
+        title: "请选择时间范围",
+        description: "开始日期和结束日期都必须填写",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const startDateTime = `${customStartDate} ${customStartTime || "00:00"}`;
+    const endDateTime = `${customEndDate} ${customEndTime || "23:59"}`;
+    
+    setTimeRange("custom");
+    setIsCustomTimeOpen(false);
+    
     toast({
-      title: "自定义时间",
-      description: "时间选择器功能已启用",
+      title: "自定义时间范围已应用",
+      description: `从 ${startDateTime} 到 ${endDateTime}`,
     });
+  };
+
+  // Get current date for date input max values
+  const getCurrentDate = () => {
+    return new Date().toISOString().split('T')[0];
   };
 
   // Handle export with animation
@@ -261,14 +294,92 @@ export default function Analytics() {
             </Select>
           </div>
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="outline" 
-              className="bg-slate-700 border-slate-600 hover:bg-slate-600 transition-all duration-200"
-              onClick={handleCustomTime}
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              自定义时间
-            </Button>
+            <Dialog open={isCustomTimeOpen} onOpenChange={setIsCustomTimeOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="bg-slate-700 border-slate-600 hover:bg-slate-600 transition-all duration-200"
+                  onClick={handleCustomTime}
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  自定义时间
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-800 border-slate-600 max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-white">选择自定义时间范围</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">开始日期</Label>
+                      <Input
+                        type="date"
+                        value={customStartDate}
+                        onChange={(e) => setCustomStartDate(e.target.value)}
+                        max={getCurrentDate()}
+                        className="bg-slate-700 border-slate-600 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">开始时间</Label>
+                      <Input
+                        type="time"
+                        value={customStartTime}
+                        onChange={(e) => setCustomStartTime(e.target.value)}
+                        className="bg-slate-700 border-slate-600 text-white"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">结束日期</Label>
+                      <Input
+                        type="date"
+                        value={customEndDate}
+                        onChange={(e) => setCustomEndDate(e.target.value)}
+                        max={getCurrentDate()}
+                        min={customStartDate}
+                        className="bg-slate-700 border-slate-600 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">结束时间</Label>
+                      <Input
+                        type="time"
+                        value={customEndTime}
+                        onChange={(e) => setCustomEndTime(e.target.value)}
+                        className="bg-slate-700 border-slate-600 text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                    <span className="text-blue-300 text-sm">
+                      选择时间范围后，数据分析将基于您指定的时间段进行计算
+                    </span>
+                  </div>
+
+                  <div className="flex justify-end space-x-3">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsCustomTimeOpen(false)}
+                      className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                    >
+                      取消
+                    </Button>
+                    <Button 
+                      onClick={handleApplyCustomTime}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      应用时间范围
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
             <Button 
               variant="outline" 
               className="bg-slate-700 border-slate-600 hover:bg-slate-600 transition-all duration-200"
