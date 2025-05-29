@@ -331,7 +331,7 @@ export default function Alerts() {
               
               <TabsContent value="active" className="mt-6">
                 <div className="space-y-4">
-                  {recentAlerts
+                  {alerts
                     .filter(alert => alert.status === "active")
                     .map((alert) => (
                     <Card key={alert.id} className={`border-l-4 ${alert.severity === 'critical' ? 'border-l-red-500 bg-red-500/5' : alert.severity === 'warning' ? 'border-l-yellow-500 bg-yellow-500/5' : 'border-l-blue-500 bg-blue-500/5'} bg-slate-800/50 border-slate-600`}>
@@ -361,14 +361,40 @@ export default function Alerts() {
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Button size="sm" variant="outline" className="bg-slate-700 border-slate-600 hover:bg-slate-600">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                              onClick={() => handleAcknowledge(alert.id)}
+                            >
                               确认
                             </Button>
-                            <Button size="sm" variant="outline" className="bg-slate-700 border-slate-600 hover:bg-slate-600">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                              onClick={() => handleIgnore(alert.id)}
+                            >
                               忽略
                             </Button>
-                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                              处理
+                            <Button 
+                              size="sm" 
+                              className={`bg-blue-600 hover:bg-blue-700 transition-all duration-200 ${
+                                processingAlerts.has(alert.id) 
+                                  ? 'animate-pulse bg-blue-700 cursor-not-allowed' 
+                                  : 'hover:scale-105'
+                              }`}
+                              onClick={() => handleProcess(alert.id)}
+                              disabled={processingAlerts.has(alert.id)}
+                            >
+                              {processingAlerts.has(alert.id) ? (
+                                <div className="flex items-center space-x-2">
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <span>处理中</span>
+                                </div>
+                              ) : (
+                                '处理'
+                              )}
                             </Button>
                           </div>
                         </div>
@@ -380,7 +406,7 @@ export default function Alerts() {
               
               <TabsContent value="acknowledged" className="mt-6">
                 <div className="space-y-4">
-                  {recentAlerts
+                  {alerts
                     .filter(alert => alert.status === "acknowledged")
                     .map((alert) => (
                     <Card key={alert.id} className="bg-slate-800/50 border-slate-600">
@@ -426,7 +452,7 @@ export default function Alerts() {
               
               <TabsContent value="resolved" className="mt-6">
                 <div className="space-y-4">
-                  {recentAlerts
+                  {alerts
                     .filter(alert => alert.status === "resolved")
                     .map((alert) => (
                     <Card key={alert.id} className="bg-slate-800/30 border-slate-600 opacity-75">
