@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Sidebar } from "@/components/layout/sidebar";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
+import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Topology from "@/pages/topology";
 import Nodes from "@/pages/nodes";
@@ -30,7 +31,10 @@ function Router() {
   return (
     <Switch>
       {!isAuthenticated ? (
-        <Route path="/" component={Landing} />
+        <>
+          <Route path="/login" component={Login} />
+          <Route path="/" component={Landing} />
+        </>
       ) : (
         <div className="flex h-screen overflow-hidden bg-slate-900">
           <Sidebar />

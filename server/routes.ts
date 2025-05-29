@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, sessionAuth } from "./replitAuth";
 import { analyzeProblem, chatWithAI, generateNetworkInsights } from "./openai";
 import { z } from "zod";
 
@@ -39,10 +39,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
 
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.post('/api/auth/login', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const { username, password } = req.body;
+      
+      // Simple validation - in production, use proper password hashing
+      const validUsers = [
+        { username: 'admin', password: 'admin123', id: '1', email: 'admin@network.com', firstName: 'Administrator', lastName: 'User' },
+        { username: 'operator', password: 'operator123', id: '2', email: 'operator@network.com', firstName: 'Operator', lastName: 'User' },
+        { username: 'viewer', password: 'viewer123', id: '3', email: 'viewer@network.com', firstName: 'Viewer', lastName: 'User' }
+      ];
+      
+      const user = validUsers.find(u => u.username === username && u.password === password);
+      if (!user) {
+        return res.status(401).json({ message: "用户名或密码错误" });
+      }
+      
+      // Store user in session
+      req.session.user = user;
+      
+      res.json({ message: "登录成功", user: { id: user.id, username: user.username, email: user.email } });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "登录失败" });
+    }
+  });
+
+  app.get('/api/auth/user', async (req: any, res) => {
+    try {
+      if (!req.session.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const sessionUser = req.session.user;
+      let user = await storage.getUser(sessionUser.id);
+      
+      if (!user) {
+        // Create user if doesn't exist
+        user = await storage.upsertUser({
+          id: sessionUser.id,
+          email: sessionUser.email,
+          firstName: sessionUser.firstName,
+          lastName: sessionUser.lastName,
+        });
+      }
+      
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -50,8 +91,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy(() => {
+      res.json({ message: "登出成功" });
+    });
+  });
+
+  // Simple auth middleware for session-based auth
+  const sessionAuth = (req: any, res: any, next: any) => {
+    if (!req.session.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    next();
+  };
+
   // Dashboard stats endpoint
-  app.get('/api/dashboard/stats', isAuthenticated, async (req, res) => {
+  app.get('/api/dashboard/stats', sessionAuth, async (req, res) => {
     try {
       const stats = await storage.getDashboardStats();
       res.json(stats);
@@ -62,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Network nodes endpoints
-  app.get('/api/nodes', isAuthenticated, async (req, res) => {
+  app.get('/api/nodes', sessionAuth, async (req, res) => {
     try {
       const nodes = await storage.getNetworkNodes();
       res.json(nodes);
@@ -72,7 +127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/nodes', isAuthenticated, async (req, res) => {
+  app.post('/api/nodes', sessionAuth, async (req, res) => {
     try {
       const nodeData = createNodeSchema.parse(req.body);
       const node = await storage.createNetworkNode(nodeData);
@@ -87,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/nodes/:id', isAuthenticated, async (req, res) => {
+  app.put('/api/nodes/:id', sessionAuth, async (req, res) => {
     try {
       const nodeData = createNodeSchema.parse(req.body);
       const node = await storage.updateNetworkNode(req.params.id, nodeData);
@@ -105,7 +160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/nodes/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/nodes/:id', sessionAuth, async (req, res) => {
     try {
       const success = await storage.deleteNetworkNode(req.params.id);
       if (!success) {
@@ -119,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Network groups endpoints
-  app.get('/api/groups', isAuthenticated, async (req, res) => {
+  app.get('/api/groups', sessionAuth, async (req, res) => {
     try {
       const groups = await storage.getNetworkGroups();
       res.json(groups);
@@ -130,7 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Alerts endpoints
-  app.get('/api/alerts', isAuthenticated, async (req, res) => {
+  app.get('/api/alerts', sessionAuth, async (req, res) => {
     try {
       const alerts = await storage.getAlerts();
       res.json(alerts);
@@ -140,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/alerts', isAuthenticated, async (req, res) => {
+  app.post('/api/alerts', sessionAuth, async (req, res) => {
     try {
       const alertData = createAlertSchema.parse(req.body);
       const alert = await storage.createAlert(alertData);
@@ -155,7 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/alerts/:id/acknowledge', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/alerts/:id/acknowledge', sessionAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -173,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Performance metrics endpoints
-  app.get('/api/metrics/performance', isAuthenticated, async (req, res) => {
+  app.get('/api/metrics/performance', sessionAuth, async (req, res) => {
     try {
       const nodeId = req.query.nodeId as string;
       const timeRange = req.query.timeRange as string || '1h';
@@ -185,7 +240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/metrics/performance', isAuthenticated, async (req, res) => {
+  app.post('/api/metrics/performance', sessionAuth, async (req, res) => {
     try {
       const metric = await storage.recordPerformanceMetric(req.body);
       res.status(201).json(metric);
@@ -196,7 +251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Diagnosis endpoints
-  app.post('/api/ai/diagnose', isAuthenticated, async (req, res) => {
+  app.post('/api/ai/diagnose', sessionAuth, async (req, res) => {
     try {
       const queryData = aiQuerySchema.parse(req.body);
       const diagnosis = await analyzeProblem(queryData);
@@ -222,7 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/ai/chat', isAuthenticated, async (req, res) => {
+  app.post('/api/ai/chat', sessionAuth, async (req, res) => {
     try {
       const chatData = chatMessageSchema.parse(req.body);
       const response = await chatWithAI(chatData.message, chatData.context);
@@ -247,7 +302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/ai/sessions', isAuthenticated, async (req, res) => {
+  app.get('/api/ai/sessions', sessionAuth, async (req, res) => {
     try {
       const userId = (req as any).user.claims.sub;
       const sessions = await storage.getAiDiagnosticSessions(userId);
@@ -259,7 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Topology endpoints
-  app.get('/api/topology/snapshot', isAuthenticated, async (req, res) => {
+  app.get('/api/topology/snapshot', sessionAuth, async (req, res) => {
     try {
       const nodes = await storage.getNetworkNodes();
       const connections = await storage.getNetworkConnections();
