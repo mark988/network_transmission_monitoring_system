@@ -155,9 +155,9 @@ export function TopologyCanvas({
 
   const drawDataFlow = (ctx: CanvasRenderingContext2D, source: Node, target: Node) => {
     const distance = Math.sqrt(Math.pow(target.x - source.x, 2) + Math.pow(target.y - source.y, 2));
-    const speed = animationSpeed * 2;
-    const dotSpacing = 40;
-    const numDots = Math.floor(distance / dotSpacing);
+    const speed = animationSpeed * 0.5;
+    const dotSpacing = 30;
+    const numDots = Math.max(3, Math.floor(distance / dotSpacing));
     
     for (let i = 0; i < numDots; i++) {
       const offset = (animationFrame * speed + i * dotSpacing) % distance;
@@ -166,10 +166,12 @@ export function TopologyCanvas({
       const x = source.x + (target.x - source.x) * progress;
       const y = source.y + (target.y - source.y) * progress;
       
-      // Direction indicator (arrow)
-      ctx.fillStyle = "#60a5fa";
+      // Animated dot
+      ctx.fillStyle = "#10b981";
+      ctx.shadowColor = "#10b981";
+      ctx.shadowBlur = 8;
       ctx.beginPath();
-      ctx.arc(x, y, 3, 0, 2 * Math.PI);
+      ctx.arc(x, y, 4, 0, 2 * Math.PI);
       ctx.fill();
       
       // Arrow direction
@@ -177,11 +179,12 @@ export function TopologyCanvas({
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(angle);
-      ctx.fillStyle = "#3b82f6";
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#059669";
       ctx.beginPath();
-      ctx.moveTo(6, 0);
-      ctx.lineTo(-2, -3);
-      ctx.lineTo(-2, 3);
+      ctx.moveTo(8, 0);
+      ctx.lineTo(-3, -4);
+      ctx.lineTo(-3, 4);
       ctx.closePath();
       ctx.fill();
       ctx.restore();
