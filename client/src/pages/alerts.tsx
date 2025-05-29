@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Bell, 
@@ -17,7 +20,8 @@ import {
   Info,
   Shield,
   CheckCircle,
-  Loader2
+  Loader2,
+  Plus
 } from "lucide-react";
 
 export default function Alerts() {
@@ -25,6 +29,14 @@ export default function Alerts() {
   const [severityFilter, setSeverityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [processingAlerts, setProcessingAlerts] = useState<Set<string>>(new Set());
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [newConfigForm, setNewConfigForm] = useState({
+    name: "",
+    severity: "warning",
+    condition: "",
+    threshold: "",
+    description: ""
+  });
   const { toast } = useToast();
 
   const recentAlerts = [
@@ -74,6 +86,27 @@ export default function Alerts() {
 
   const [alerts, setAlerts] = useState(recentAlerts);
 
+  // 过滤告警数据
+  const getFilteredAlerts = (status: string) => {
+    let filtered = alerts.filter(alert => alert.status === status);
+    
+    // 按严重程度过滤
+    if (severityFilter !== "all") {
+      filtered = filtered.filter(alert => alert.severity === severityFilter);
+    }
+    
+    // 按搜索词过滤
+    if (searchTerm) {
+      filtered = filtered.filter(alert => 
+        alert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        alert.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        alert.node.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return filtered;
+  };
+
   // 事件处理函数
   const handleSeverityFilterChange = (value: string) => {
     setSeverityFilter(value);
@@ -119,10 +152,31 @@ export default function Alerts() {
   };
 
   const handleAlertConfig = () => {
+    setConfigDialogOpen(true);
+  };
+
+  const handleConfigSubmit = () => {
+    if (!newConfigForm.name || !newConfigForm.condition || !newConfigForm.threshold) {
+      toast({
+        title: "表单验证失败",
+        description: "请填写所有必填字段",
+      });
+      return;
+    }
+
     toast({
-      title: "告警配置",
-      description: "正在打开告警配置界面...",
+      title: "告警配置已添加",
+      description: `规则 "${newConfigForm.name}" 已成功创建`,
     });
+
+    setNewConfigForm({
+      name: "",
+      severity: "warning",
+      condition: "",
+      threshold: "",
+      description: ""
+    });
+    setConfigDialogOpen(false);
   };
 
   const handleAcknowledge = (alertId: string) => {
@@ -300,14 +354,108 @@ export default function Alerts() {
                   <Download className="w-4 h-4 mr-2" />
                   导出
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="bg-slate-700 border-slate-600 hover:bg-slate-600"
-                  onClick={handleAlertConfig}
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  告警配置
-                </Button>
+                <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                      onClick={handleAlertConfig}
+                    >
+                      <Settings className="w-4 h-4 mr-2" />
+                      告警配置
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-slate-800 border-slate-600 text-white max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl font-bold text-white">添加告警配置规则</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-6 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="name" className="text-right text-slate-300">
+                          规则名称 *
+                        </Label>
+                        <Input
+                          id="name"
+                          value={newConfigForm.name}
+                          onChange={(e) => setNewConfigForm(prev => ({ ...prev, name: e.target.value }))}
+                          className="col-span-3 bg-slate-700 border-slate-600 text-white"
+                          placeholder="例如：CPU使用率告警"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="severity" className="text-right text-slate-300">
+                          告警级别
+                        </Label>
+                        <Select 
+                          value={newConfigForm.severity} 
+                          onValueChange={(value) => setNewConfigForm(prev => ({ ...prev, severity: value }))}
+                        >
+                          <SelectTrigger className="col-span-3 bg-slate-700 border-slate-600">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="info">信息</SelectItem>
+                            <SelectItem value="warning">警告</SelectItem>
+                            <SelectItem value="critical">严重</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="condition" className="text-right text-slate-300">
+                          监控条件 *
+                        </Label>
+                        <Input
+                          id="condition"
+                          value={newConfigForm.condition}
+                          onChange={(e) => setNewConfigForm(prev => ({ ...prev, condition: e.target.value }))}
+                          className="col-span-3 bg-slate-700 border-slate-600 text-white"
+                          placeholder="例如：CPU使用率"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="threshold" className="text-right text-slate-300">
+                          阈值 *
+                        </Label>
+                        <Input
+                          id="threshold"
+                          value={newConfigForm.threshold}
+                          onChange={(e) => setNewConfigForm(prev => ({ ...prev, threshold: e.target.value }))}
+                          className="col-span-3 bg-slate-700 border-slate-600 text-white"
+                          placeholder="例如：>85%"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="description" className="text-right text-slate-300">
+                          描述信息
+                        </Label>
+                        <Textarea
+                          id="description"
+                          value={newConfigForm.description}
+                          onChange={(e) => setNewConfigForm(prev => ({ ...prev, description: e.target.value }))}
+                          className="col-span-3 bg-slate-700 border-slate-600 text-white"
+                          placeholder="告警规则的详细描述..."
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-3">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setConfigDialogOpen(false)}
+                        className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                      >
+                        取消
+                      </Button>
+                      <Button 
+                        onClick={handleConfigSubmit}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        添加规则
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
           </CardHeader>
@@ -331,9 +479,7 @@ export default function Alerts() {
               
               <TabsContent value="active" className="mt-6">
                 <div className="space-y-4">
-                  {alerts
-                    .filter(alert => alert.status === "active")
-                    .map((alert) => (
+                  {getFilteredAlerts("active").map((alert) => (
                     <Card key={alert.id} className={`border-l-4 ${alert.severity === 'critical' ? 'border-l-red-500 bg-red-500/5' : alert.severity === 'warning' ? 'border-l-yellow-500 bg-yellow-500/5' : 'border-l-blue-500 bg-blue-500/5'} bg-slate-800/50 border-slate-600`}>
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between">
@@ -406,9 +552,7 @@ export default function Alerts() {
               
               <TabsContent value="acknowledged" className="mt-6">
                 <div className="space-y-4">
-                  {alerts
-                    .filter(alert => alert.status === "acknowledged")
-                    .map((alert) => (
+                  {getFilteredAlerts("acknowledged").map((alert) => (
                     <Card key={alert.id} className="bg-slate-800/50 border-slate-600">
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between">
@@ -452,9 +596,7 @@ export default function Alerts() {
               
               <TabsContent value="resolved" className="mt-6">
                 <div className="space-y-4">
-                  {alerts
-                    .filter(alert => alert.status === "resolved")
-                    .map((alert) => (
+                  {getFilteredAlerts("resolved").map((alert) => (
                     <Card key={alert.id} className="bg-slate-800/30 border-slate-600 opacity-75">
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between">
