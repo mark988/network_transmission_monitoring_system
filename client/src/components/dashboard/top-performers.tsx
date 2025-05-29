@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,9 +12,14 @@ interface Node {
   type: "router" | "switch" | "server";
   score: number;
   status: "online" | "warning" | "offline";
+  stability?: number;
 }
 
+type SortMode = "performance" | "stability";
+
 export function TopPerformers() {
+  const [sortMode, setSortMode] = useState<SortMode>("performance");
+  
   const { data: topNodes } = useQuery({
     queryKey: ["/api/dashboard/top-performers"],
     refetchInterval: 60000,
@@ -27,6 +33,7 @@ export function TopPerformers() {
       ip: "192.168.1.103",
       type: "router",
       score: 98.5,
+      stability: 99.2,
       status: "online"
     },
     {
@@ -35,6 +42,7 @@ export function TopPerformers() {
       ip: "192.168.2.107",
       type: "switch",
       score: 96.8,
+      stability: 97.5,
       status: "online"
     },
     {
@@ -43,6 +51,7 @@ export function TopPerformers() {
       ip: "192.168.3.105",
       type: "router",
       score: 94.2,
+      stability: 88.7,
       status: "online"
     },
     {
@@ -51,11 +60,21 @@ export function TopPerformers() {
       ip: "192.168.1.101", 
       type: "router",
       score: 87.3,
+      stability: 92.1,
       status: "warning"
     }
   ];
 
-  const nodeData = topNodes || defaultNodes;
+  const nodeData = (topNodes as Node[]) || defaultNodes;
+
+  // 根据排序模式对节点数据进行排序
+  const sortedNodes = [...nodeData].sort((a, b) => {
+    if (sortMode === "performance") {
+      return b.score - a.score;
+    } else {
+      return (b.stability || 0) - (a.stability || 0);
+    }
+  });
 
   const getNodeIcon = (type: string) => {
     switch (type) {
@@ -98,6 +117,14 @@ export function TopPerformers() {
     return "稳定运行";
   };
 
+  const getStabilityLabel = (stability: number) => {
+    if (stability >= 98) return "极其稳定";
+    if (stability >= 95) return "高度稳定";
+    if (stability >= 90) return "稳定运行";
+    if (stability >= 85) return "基本稳定";
+    return "需要优化";
+  };
+
   return (
     <Card className="glass-effect border-slate-700">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
@@ -105,14 +132,23 @@ export function TopPerformers() {
         <div className="flex items-center space-x-2">
           <Button 
             size="sm" 
-            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1"
+            onClick={() => setSortMode("performance")}
+            className={`text-xs px-3 py-1 transition-colors ${
+              sortMode === "performance" 
+                ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                : "bg-slate-600 hover:bg-slate-500 text-white border-slate-600"
+            }`}
           >
             性能
           </Button>
           <Button 
-            size="sm" 
-            variant="outline"
-            className="bg-slate-600 hover:bg-slate-500 text-white text-xs px-3 py-1 border-slate-600"
+            size="sm"
+            onClick={() => setSortMode("stability")}
+            className={`text-xs px-3 py-1 transition-colors ${
+              sortMode === "stability" 
+                ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                : "bg-slate-600 hover:bg-slate-500 text-white border-slate-600"
+            }`}
           >
             稳定性
           </Button>
@@ -120,7 +156,7 @@ export function TopPerformers() {
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {nodeData.map((node, index) => (
+        {sortedNodes.map((node, index) => (
           <div 
             key={node.id} 
             className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg border border-slate-600/50 hover:bg-slate-700/50 transition-colors"
@@ -147,11 +183,14 @@ export function TopPerformers() {
             </div>
             <div className="text-right flex items-center space-x-3">
               <div>
-                <p className={`text-sm font-bold ${getScoreColor(node.score)}`}>
-                  {node.score}%
+                <p className={`text-sm font-bold ${getScoreColor(sortMode === "performance" ? node.score : (node.stability || 0))}`}>
+                  {sortMode === "performance" ? node.score : (node.stability || 0).toFixed(1)}%
                 </p>
                 <p className="text-xs text-slate-400">
-                  {getStatusLabel(node.status, node.score)}
+                  {sortMode === "performance" 
+                    ? getStatusLabel(node.status, node.score)
+                    : getStabilityLabel(node.stability || 0)
+                  }
                 </p>
               </div>
               <div className={`w-2 h-2 rounded-full ${getStatusColor(node.status)}`} />
