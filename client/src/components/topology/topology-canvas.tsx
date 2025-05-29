@@ -316,14 +316,19 @@ export function TopologyCanvas({
       animationId = requestAnimationFrame(animate);
     };
     
-    animate();
+    animationId = requestAnimationFrame(animate);
     
     return () => {
       if (animationId) {
         cancelAnimationFrame(animationId);
       }
     };
-  }, [isPlaying, zoomLevel, layout, animationSpeed, showDataFlow, activeFilters, animationFrame]);
+  }, [isPlaying, zoomLevel, layout, animationSpeed, showDataFlow, activeFilters]);
+
+  // Initial canvas setup
+  useEffect(() => {
+    drawCanvas();
+  }, []);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;

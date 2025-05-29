@@ -44,8 +44,13 @@ export default function Topology() {
   const handleRefresh = () => {
     setZoomLevel(1);
     setSelectedNode(null);
-    // 触发画布重绘
-    window.location.reload();
+    setActiveFilters([]);
+    setLayout("force");
+  };
+
+  // 处理适应屏幕功能
+  const handleFitToScreen = () => {
+    setZoomLevel(1);
   };
 
   // 处理下载功能
@@ -121,7 +126,7 @@ export default function Topology() {
                     variant="outline"
                     size="sm"
                     className="bg-slate-700 border-slate-600 hover:bg-slate-600"
-                    onClick={() => setZoomLevel(1)}
+                    onClick={handleFitToScreen}
                     title="适应屏幕"
                   >
                     <Maximize className="w-4 h-4" />
@@ -232,7 +237,10 @@ export default function Topology() {
                             ? "bg-green-500 text-white border-green-500"
                             : "bg-slate-600/50 text-slate-300 border-slate-500 hover:bg-slate-500/50"
                         }`}
-                        onClick={() => toggleFilter(status)}
+                        onClick={() => {
+                          console.log("Clicked status filter:", status);
+                          toggleFilter(status);
+                        }}
                       >
                         {status}
                       </Badge>
