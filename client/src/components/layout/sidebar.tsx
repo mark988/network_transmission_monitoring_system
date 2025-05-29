@@ -33,7 +33,7 @@ export function Sidebar() {
   return (
     <div className="w-64 bg-slate-800 border-r border-slate-700 flex flex-col">
       {/* Logo and Branding */}
-      <div className="px-6 py-4 border-b border-slate-700">
+      <div className="px-6 py-[18px] border-b border-slate-700">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-lg flex items-center justify-center">
             <Network className="w-6 h-6 text-white" />
