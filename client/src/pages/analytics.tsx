@@ -267,6 +267,49 @@ export default function Analytics() {
       <Header title="数据分析" />
       
       <main className="flex-1 overflow-auto p-6 space-y-6">
+        {/* Feature Description */}
+        <Card className="glass-effect border-slate-700">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold text-white mb-2">系统功能概述</h2>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                  企业级网络监控数据分析平台，提供全面的网络性能评估和智能预测分析。系统集成实时数据采集、多维度指标监控、智能告警预警和趋势预测功能，帮助网络管理员深入了解网络运行状况，及时发现潜在问题，优化网络配置，确保业务连续性和网络稳定性，提升整体运维效率。
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600">
+                  <h3 className="text-blue-400 font-medium mb-2">网络流量</h3>
+                  <p className="text-slate-300 text-xs">
+                    实时监控网络数据传输情况，展示入站出站流量趋势，分析带宽利用率和数据传输模式，识别流量异常和网络瓶颈。
+                  </p>
+                </div>
+                
+                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600">
+                  <h3 className="text-green-400 font-medium mb-2">性能指标</h3>
+                  <p className="text-slate-300 text-xs">
+                    监测网络延迟、数据包丢失率、吞吐量等关键性能参数，提供多层次性能分析视图，帮助评估网络服务质量。
+                  </p>
+                </div>
+                
+                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600">
+                  <h3 className="text-purple-400 font-medium mb-2">节点分析</h3>
+                  <p className="text-slate-300 text-xs">
+                    深度分析各网络节点运行状态，监控设备资源使用情况，评估节点性能表现，识别高负载和故障风险节点。
+                  </p>
+                </div>
+                
+                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600">
+                  <h3 className="text-yellow-400 font-medium mb-2">趋势预测</h3>
+                  <p className="text-slate-300 text-xs">
+                    基于历史数据和机器学习算法，预测网络性能变化趋势，提前识别潜在问题，支持容量规划和预防性维护决策。
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         {/* Controls */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
