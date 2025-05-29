@@ -141,15 +141,189 @@ export function TopologyCanvas({
     ctx.lineWidth = 2;
     ctx.setLineDash([]);
 
-    if (connection.status === "active") {
-      ctx.setLineDash([5, 5]);
-    }
-
+    // Draw static connection line
     ctx.beginPath();
     ctx.moveTo(sourceNode.x, sourceNode.y);
     ctx.lineTo(targetNode.x, targetNode.y);
     ctx.stroke();
+
+    // Draw animated data flow if enabled and playing
+    if (showDataFlow && isPlaying && connection.status === "active") {
+      drawDataFlow(ctx, sourceNode, targetNode);
+    }
   };
+
+  const drawDataFlow = (ctx: CanvasRenderingContext2D, source: Node, target: Node) => {
+    const distance = Math.sqrt(Math.pow(target.x - source.x, 2) + Math.pow(target.y - source.y, 2));
+    const speed = animationSpeed * 2;
+    const dotSpacing = 40;
+    const numDots = Math.floor(distance / dotSpacing);
+    
+    for (let i = 0; i < numDots; i++) {
+      const offset = (animationFrame * speed + i * dotSpacing) % distance;
+      const progress = offset / distance;
+      
+      const x = source.x + (target.x - source.x) * progress;
+      const y = source.y + (target.y - source.y) * progress;
+      
+      // Direction indicator (arrow)
+      ctx.fillStyle = "#60a5fa";
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, 2 * Math.PI);
+      ctx.fill();
+      
+      // Arrow direction
+      const angle = Math.atan2(target.y - source.y, target.x - source.x);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.fillStyle = "#3b82f6";
+      ctx.beginPath();
+      ctx.moveTo(6, 0);
+      ctx.lineTo(-2, -3);
+      ctx.lineTo(-2, 3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  };
+
+  const drawCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Set canvas size
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    // Apply zoom and centering
+    ctx.save();
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    ctx.translate(centerX, centerY);
+    ctx.scale(zoomLevel, zoomLevel);
+    ctx.translate(-centerX, -centerY);
+
+    // Clear canvas
+    ctx.fillStyle = "#1e293b";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Apply layout positioning
+    const layoutNodes = applyLayout(nodes, layout);
+
+    // Draw connections first
+    connections.forEach(connection => {
+      drawConnection(ctx, connection);
+    });
+
+    // Draw nodes
+    layoutNodes.forEach(node => {
+      // Apply filters
+      const typeFilter = ["路由器", "交换机", "服务器", "终端"];
+      const statusFilter = ["活跃", "闲置", "故障"];
+      
+      const nodeTypeMap: { [key: string]: string } = {
+        "router": "路由器",
+        "switch": "交换机", 
+        "server": "服务器",
+        "endpoint": "终端"
+      };
+      
+      const nodeStatusMap: { [key: string]: string } = {
+        "online": "活跃",
+        "warning": "闲置",
+        "offline": "故障"
+      };
+
+      const shouldShow = (activeFilters.length === 0) || 
+        activeFilters.includes(nodeTypeMap[node.type]) ||
+        activeFilters.includes(nodeStatusMap[node.status]);
+
+      if (shouldShow) {
+        drawNode(ctx, node);
+      }
+    });
+
+    ctx.restore();
+  };
+
+  const applyLayout = (nodes: Node[], layoutType: string): Node[] => {
+    const layoutNodes = [...nodes];
+    const centerX = 400;
+    const centerY = 300;
+    
+    switch (layoutType) {
+      case "hierarchical":
+        // Arrange in layers
+        layoutNodes.forEach((node, index) => {
+          const layer = node.type === "router" ? 0 : 
+                       node.type === "switch" ? 1 : 
+                       node.type === "server" ? 2 : 3;
+          layoutNodes[index] = {
+            ...node,
+            x: 100 + (index % 3) * 200,
+            y: 100 + layer * 100
+          };
+        });
+        break;
+        
+      case "circular":
+        // Arrange in circle
+        layoutNodes.forEach((node, index) => {
+          const angle = (index / layoutNodes.length) * 2 * Math.PI;
+          const radius = 150;
+          layoutNodes[index] = {
+            ...node,
+            x: centerX + Math.cos(angle) * radius,
+            y: centerY + Math.sin(angle) * radius
+          };
+        });
+        break;
+        
+      case "grid":
+        // Arrange in grid
+        const cols = 3;
+        layoutNodes.forEach((node, index) => {
+          const row = Math.floor(index / cols);
+          const col = index % cols;
+          layoutNodes[index] = {
+            ...node,
+            x: 150 + col * 200,
+            y: 100 + row * 120
+          };
+        });
+        break;
+        
+      default: // force layout - keep original positions
+        break;
+    }
+    
+    return layoutNodes;
+  };
+
+  // Animation loop
+  useEffect(() => {
+    let animationId: number;
+    
+    const animate = () => {
+      if (isPlaying) {
+        setAnimationFrame(prev => prev + 1);
+      }
+      drawCanvas();
+      animationId = requestAnimationFrame(animate);
+    };
+    
+    animate();
+    
+    return () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    };
+  }, [isPlaying, zoomLevel, layout, animationSpeed, showDataFlow, activeFilters, animationFrame]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;

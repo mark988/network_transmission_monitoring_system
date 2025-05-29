@@ -147,7 +147,15 @@ export default function Topology() {
                 </div>
               </CardHeader>
               <CardContent className="p-0 h-[calc(100%-5rem)]">
-                <TopologyCanvas onNodeSelect={setSelectedNode} />
+                <TopologyCanvas 
+                  onNodeSelect={setSelectedNode}
+                  isPlaying={isPlaying}
+                  zoomLevel={zoomLevel}
+                  layout={layout}
+                  animationSpeed={animationSpeed}
+                  showDataFlow={showDataFlow}
+                  activeFilters={activeFilters}
+                />
               </CardContent>
             </Card>
           </div>
