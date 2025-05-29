@@ -7,53 +7,25 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Bell, 
   Search, 
-  Filter, 
   Download, 
   Settings, 
   AlertTriangle,
   Info,
   Shield,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from "lucide-react";
 
 export default function Alerts() {
   const [searchTerm, setSearchTerm] = useState("");
   const [severityFilter, setSeverityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-
-  const alertStats = [
-    { 
-      label: "总告警数", 
-      value: "23", 
-      icon: <Bell className="w-5 h-5" />, 
-      color: "text-blue-400",
-      bgColor: "bg-blue-500/20" 
-    },
-    { 
-      label: "严重告警", 
-      value: "3", 
-      icon: <AlertTriangle className="w-5 h-5" />, 
-      color: "text-red-400",
-      bgColor: "bg-red-500/20" 
-    },
-    { 
-      label: "警告告警", 
-      value: "12", 
-      icon: <Shield className="w-5 h-5" />, 
-      color: "text-yellow-400",
-      bgColor: "bg-yellow-500/20" 
-    },
-    { 
-      label: "已处理", 
-      value: "8", 
-      icon: <CheckCircle className="w-5 h-5" />, 
-      color: "text-green-400",
-      bgColor: "bg-green-500/20" 
-    }
-  ];
+  const [processingAlerts, setProcessingAlerts] = useState<Set<string>>(new Set());
+  const { toast } = useToast();
 
   const recentAlerts = [
     {
@@ -97,6 +69,145 @@ export default function Alerts() {
       time: "1小时前",
       acknowledged: true,
       acknowledgedBy: "系统"
+    }
+  ];
+
+  const [alerts, setAlerts] = useState(recentAlerts);
+
+  // 事件处理函数
+  const handleSeverityFilterChange = (value: string) => {
+    setSeverityFilter(value);
+    toast({
+      title: "筛选已更新",
+      description: `已切换到级别: ${value === 'all' ? '所有级别' : value === 'critical' ? '严重' : value === 'warning' ? '警告' : '信息'}`,
+    });
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    toast({
+      title: "筛选已更新", 
+      description: `已切换到状态: ${value === 'all' ? '所有状态' : value === 'active' ? '活跃' : value === 'acknowledged' ? '已确认' : '已解决'}`,
+    });
+  };
+
+  const handleExport = () => {
+    toast({
+      title: "导出开始",
+      description: "正在生成告警数据报表，请稍候...",
+    });
+    
+    // 模拟导出延迟
+    setTimeout(() => {
+      const csvContent = alerts.map(alert => 
+        `${alert.title},${alert.severity},${alert.status},${alert.node},${alert.time}`
+      ).join('\n');
+      
+      const blob = new Blob([`标题,级别,状态,节点,时间\n${csvContent}`], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `alerts_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "导出完成",
+        description: "告警数据已成功导出到本地文件",
+      });
+    }, 1500);
+  };
+
+  const handleAlertConfig = () => {
+    toast({
+      title: "告警配置",
+      description: "正在打开告警配置界面...",
+    });
+  };
+
+  const handleAcknowledge = (alertId: string) => {
+    setAlerts(prevAlerts => 
+      prevAlerts.map(alert => 
+        alert.id === alertId 
+          ? { ...alert, status: "acknowledged", acknowledged: true, acknowledgedBy: "当前用户" }
+          : alert
+      )
+    );
+    
+    toast({
+      title: "告警已确认",
+      description: "告警状态已更新为已确认",
+    });
+  };
+
+  const handleIgnore = (alertId: string) => {
+    setAlerts(prevAlerts => prevAlerts.filter(alert => alert.id !== alertId));
+    
+    toast({
+      title: "告警已忽略",
+      description: "告警已从列表中移除",
+    });
+  };
+
+  const handleProcess = async (alertId: string) => {
+    setProcessingAlerts(prev => new Set(prev.add(alertId)));
+    
+    toast({
+      title: "开始处理",
+      description: "正在处理告警，请稍候...",
+    });
+
+    // 模拟处理延迟
+    setTimeout(() => {
+      setAlerts(prevAlerts => 
+        prevAlerts.map(alert => 
+          alert.id === alertId 
+            ? { ...alert, status: "resolved", acknowledged: true, acknowledgedBy: "系统自动处理" }
+            : alert
+        )
+      );
+      
+      setProcessingAlerts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(alertId);
+        return newSet;
+      });
+      
+      toast({
+        title: "处理完成",
+        description: "告警已成功处理并解决",
+      });
+    }, 2000);
+  };
+
+  const alertStats = [
+    { 
+      label: "总告警数", 
+      value: "23", 
+      icon: <Bell className="w-5 h-5" />, 
+      color: "text-blue-400",
+      bgColor: "bg-blue-500/20" 
+    },
+    { 
+      label: "严重告警", 
+      value: "3", 
+      icon: <AlertTriangle className="w-5 h-5" />, 
+      color: "text-red-400",
+      bgColor: "bg-red-500/20" 
+    },
+    { 
+      label: "警告告警", 
+      value: "12", 
+      icon: <Shield className="w-5 h-5" />, 
+      color: "text-yellow-400",
+      bgColor: "bg-yellow-500/20" 
+    },
+    { 
+      label: "已处理", 
+      value: "8", 
+      icon: <CheckCircle className="w-5 h-5" />, 
+      color: "text-green-400",
+      bgColor: "bg-green-500/20" 
     }
   ];
 
@@ -159,7 +270,7 @@ export default function Alerts() {
                     className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400 w-64"
                   />
                 </div>
-                <Select value={severityFilter} onValueChange={setSeverityFilter}>
+                <Select value={severityFilter} onValueChange={handleSeverityFilterChange}>
                   <SelectTrigger className="w-32 bg-slate-700 border-slate-600">
                     <SelectValue placeholder="级别" />
                   </SelectTrigger>
@@ -170,7 +281,7 @@ export default function Alerts() {
                     <SelectItem value="info">信息</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                   <SelectTrigger className="w-32 bg-slate-700 border-slate-600">
                     <SelectValue placeholder="状态" />
                   </SelectTrigger>
@@ -181,15 +292,19 @@ export default function Alerts() {
                     <SelectItem value="resolved">已解决</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button variant="outline" className="bg-slate-700 border-slate-600 hover:bg-slate-600">
-                  <Filter className="w-4 h-4 mr-2" />
-                  高级筛选
-                </Button>
-                <Button variant="outline" className="bg-slate-700 border-slate-600 hover:bg-slate-600">
+                <Button 
+                  variant="outline" 
+                  className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                  onClick={handleExport}
+                >
                   <Download className="w-4 h-4 mr-2" />
                   导出
                 </Button>
-                <Button variant="outline" className="bg-slate-700 border-slate-600 hover:bg-slate-600">
+                <Button 
+                  variant="outline" 
+                  className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                  onClick={handleAlertConfig}
+                >
                   <Settings className="w-4 h-4 mr-2" />
                   告警配置
                 </Button>
