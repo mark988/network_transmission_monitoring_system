@@ -94,7 +94,7 @@ export default function Login() {
               </div>
             </div>
             <div>
-              <CardTitle className="text-2xl font-bold text-white">网络监测系统</CardTitle>
+              <CardTitle className="text-2xl font-bold text-white">兴畅大规模时变网络传输监测系统</CardTitle>
               <CardDescription className="text-slate-400">Network Monitor Pro</CardDescription>
             </div>
           </CardHeader>
